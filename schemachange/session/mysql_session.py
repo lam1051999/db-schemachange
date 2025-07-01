@@ -3,6 +3,7 @@ import mysql.connector
 from schemachange.config.utils import get_not_none_key_value
 from schemachange.session.base import BaseSession
 
+
 class MySQLSession(BaseSession):
     def _connect(self):
         connect_kwargs = {

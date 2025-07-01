@@ -28,12 +28,14 @@ class BaseConfig(ABC):
     config_vars: dict = dataclasses.field(default_factory=dict)
     secrets: set[str] = dataclasses.field(default_factory=set)
     log_level: int = logging.INFO
+    db_type: str
 
     @classmethod
     def factory(
         cls,
         subcommand: Literal["deploy", "render"],
         config_file_path: Path,
+        db_type: str,
         root_folder: Path | str | None = Path("."),
         modules_folder: Path | str | None = None,
         config_vars: str | dict | None = None,
@@ -55,6 +57,7 @@ class BaseConfig(ABC):
             config_vars=validate_config_vars(config_vars=config_vars),
             secrets=secrets,
             log_level=log_level,
+            db_type=db_type,
             **kwargs,
         )
 

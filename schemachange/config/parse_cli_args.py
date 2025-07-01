@@ -66,7 +66,7 @@ def parse_cli_args(args) -> dict:
     parser = argparse.ArgumentParser(
         prog="schemachange",
         description="Apply schema changes to a Snowflake account. Full readme at "
-        "https://github.com/Snowflake-Labs/schemachange",
+        "https://github.com/lam1051999/db-schemachange",
         formatter_class=argparse.RawTextHelpFormatter,
     )
 

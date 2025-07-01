@@ -10,45 +10,42 @@ import jinja2
 import jinja2.ext
 import structlog
 import yaml
-from schemachange.JinjaEnvVar import JinjaEnvVar
+from schemachange.jinja.JinjaEnvVar import JinjaEnvVar
 import warnings
 
 logger = structlog.getLogger(__name__)
 
-snowflake_identifier_pattern = re.compile(r"^[\w]+$")
+# Words with alphanumeric characters and underscores only
+identifier_pattern = re.compile(r"^[\w]+$")
+
 
 class BaseEnum:
     @classmethod
     def items(cls):
         return [v for k, v in cls.__dict__.items() if type(v) == str and k[:2] != "__"]
-    
+
     @classmethod
     def validate_value(cls, attr, value):
         valid_values = cls.items()
         if value not in valid_values:
-            raise ValueError(f"Invalid value '{attr}', should be one of {valid_values}, actual '{value}'")
+            raise ValueError(
+                f"Invalid value '{attr}', should be one of {valid_values}, actual '{value}'"
+            )
+
 
 def get_not_none_key_value(data: Dict[str, Any]) -> Dict[str, Any]:
     return {k: v for k, v in data.items() if v is not None}
 
-def get_snowflake_identifier_string(input_value: str, input_type: str) -> str | None:
-    # Words with alphanumeric characters and underscores only.
+
+def get_identifier_string(input_value: str, input_type: str) -> str | None:
     if input_value is None:
         return None
-    elif snowflake_identifier_pattern.match(input_value):
+    elif identifier_pattern.match(input_value):
         return input_value
-    elif input_value.startswith('"') and input_value.endswith('"'):
-        return input_value
-    elif input_value.startswith('"') and not input_value.endswith('"'):
-        raise ValueError(
-            f"Invalid {input_type}: {input_value}. Missing ending double quote"
-        )
-    elif not input_value.startswith('"') and input_value.endswith('"'):
-        raise ValueError(
-            f"Invalid {input_type}: {input_value}. Missing beginning double quote"
-        )
     else:
-        return f'"{input_value}"'
+        raise ValueError(
+            f"Invalid {input_type}: {input_value}. Should contain alphanumeric characters and underscores only"
+        )
 
 
 def get_config_secrets(config_vars: dict[str, dict | str] | None) -> set[str]:
@@ -145,32 +142,32 @@ def load_yaml_config(config_file_path: Path | None) -> dict[str, Any]:
     return config
 
 
-def get_snowsql_pwd() -> str | None:
-    snowsql_pwd = os.getenv("SNOWSQL_PWD")
-    if snowsql_pwd is not None and snowsql_pwd:
-        warnings.warn(
-            "The SNOWSQL_PWD environment variable is deprecated and "
-            "will be removed in a later version of schemachange. "
-            "Please use SNOWFLAKE_PASSWORD instead.",
-            DeprecationWarning,
-        )
-    return snowsql_pwd
+# def get_snowsql_pwd() -> str | None:
+#     snowsql_pwd = os.getenv("SNOWSQL_PWD")
+#     if snowsql_pwd is not None and snowsql_pwd:
+#         warnings.warn(
+#             "The SNOWSQL_PWD environment variable is deprecated and "
+#             "will be removed in a later version of schemachange. "
+#             "Please use SNOWFLAKE_PASSWORD instead.",
+#             DeprecationWarning,
+#         )
+#     return snowsql_pwd
 
 
-def get_snowflake_password() -> str | None:
-    snowflake_password = os.getenv("SNOWFLAKE_PASSWORD")
-    snowsql_pwd = get_snowsql_pwd()
+# def get_snowflake_password() -> str | None:
+#     snowflake_password = os.getenv("SNOWFLAKE_PASSWORD")
+#     snowsql_pwd = get_snowsql_pwd()
 
-    if snowflake_password is not None and snowflake_password:
-        # Check legacy/deprecated env variable
-        if snowsql_pwd is not None and snowsql_pwd:
-            warnings.warn(
-                "Environment variables SNOWFLAKE_PASSWORD and SNOWSQL_PWD "
-                "are both present, using SNOWFLAKE_PASSWORD",
-                DeprecationWarning,
-            )
-        return snowflake_password
-    elif snowsql_pwd is not None and snowsql_pwd:
-        return snowsql_pwd
-    else:
-        return None
+#     if snowflake_password is not None and snowflake_password:
+#         # Check legacy/deprecated env variable
+#         if snowsql_pwd is not None and snowsql_pwd:
+#             warnings.warn(
+#                 "Environment variables SNOWFLAKE_PASSWORD and SNOWSQL_PWD "
+#                 "are both present, using SNOWFLAKE_PASSWORD",
+#                 DeprecationWarning,
+#             )
+#         return snowflake_password
+#     elif snowsql_pwd is not None and snowsql_pwd:
+#         return snowsql_pwd
+#     else:
+#         return None

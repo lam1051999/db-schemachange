@@ -1,9 +1,11 @@
 import structlog
-from textwrap import indent
-
+from textwrap import indent, dedent
 from typing import Any, Dict, List, Optional, Tuple
+from collections import defaultdict
+
 from schemachange.config.utils import BaseEnum
 from schemachange.config.change_history_table import ChangeHistoryTable
+
 
 class DatabaseType(BaseEnum):
     POSTGRES = "POSTGRES"
@@ -11,6 +13,7 @@ class DatabaseType(BaseEnum):
     MYSQL = "MYSQL"
     ORACLE = "ORACLE"
     SNOWFLAKE = "SNOWFLAKE"
+
 
 class Singleton(type):
     _instances = {}
@@ -31,7 +34,9 @@ class BaseSession(metaclass=Singleton):
     def __init__(self, session_kwargs: Dict[str, Any], logger: structlog.BoundLogger):
         self.session_kwargs = session_kwargs
         self.logger = logger
-        self.change_history_table: ChangeHistoryTable = session_kwargs.get("change_history_table")
+        self.change_history_table: ChangeHistoryTable = session_kwargs.get(
+            "change_history_table"
+        )
         self._connection = None
         self._cursor = None
 
@@ -102,15 +107,13 @@ class BaseSession(metaclass=Singleton):
             self._connection.close()
             self._connection = None
 
-    
-
-
-
-
-
-
-
-
+    def get_meta_table(self) -> str:
+        database_name = self.change_history_table.database_name
+        return (
+            f"{database_name}.INFORMATION_SCHEMA.TABLES"
+            if database_name
+            else "INFORMATION_SCHEMA.TABLES"
+        )
 
     def fetch_change_history_metadata(self) -> dict:
         # This should only ever return 0 or 1 rows
@@ -118,42 +121,28 @@ class BaseSession(metaclass=Singleton):
             SELECT
                 CREATED,
                 LAST_ALTERED
-            FROM {self.change_history_table.database_name}.INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = REPLACE('{self.change_history_table.schema_name}','\"','')
-                AND TABLE_NAME = REPLACE('{self.change_history_table.table_name}','\"','')
+            FROM {self.get_meta_table()}
+            WHERE UPPER(TABLE_SCHEMA) = '{self.change_history_table.schema_name}'
+                AND UPPER(TABLE_NAME) = '{self.change_history_table.table_name}'
         """
-        results = self.execute_snowflake_query(query=dedent(query), logger=self.logger)
+        data = self.execute_query(query=query)
 
-        # Collect all the results into a list
-        change_history_metadata = dict()
-        for cursor in results:
-            for row in cursor:
-                change_history_metadata["created"] = row[0]
-                change_history_metadata["last_altered"] = row[1]
-
-        return change_history_metadata
-
-    def change_history_schema_exists(self) -> bool:
-        query = f"""\
-            SELECT
-                COUNT(1)
-            FROM {self.change_history_table.database_name}.INFORMATION_SCHEMA.SCHEMATA
-            WHERE SCHEMA_NAME = REPLACE('{self.change_history_table.schema_name}','\"','')
-        """
-        results = self.execute_snowflake_query(dedent(query), logger=self.logger)
-        for cursor in results:
-            for row in cursor:
-                return row[0] > 0
+        return data
 
     def create_change_history_schema(self, dry_run: bool) -> None:
-        query = f"CREATE SCHEMA IF NOT EXISTS {self.change_history_table.fully_qualified_schema_name}"
+        schema_name = self.change_history_table.fully_qualified_schema_name
+        query = (
+            f"CREATE SCHEMA IF NOT EXISTS {schema_name}"
+            if self.change_history_table.schema_name
+            else f"CREATE DATABASE IF NOT EXISTS {schema_name}"
+        )
         if dry_run:
             self.logger.debug(
                 "Running in dry-run mode. Skipping execution.",
                 query=indent(dedent(query), prefix="\t"),
             )
         else:
-            self.execute_snowflake_query(dedent(query), logger=self.logger)
+            self.execute_query(dedent(query))
 
     def create_change_history_table(self, dry_run: bool) -> None:
         query = f"""\
@@ -175,7 +164,7 @@ class BaseSession(metaclass=Singleton):
                 query=indent(dedent(query), prefix="\t"),
             )
         else:
-            self.execute_snowflake_query(dedent(query), logger=self.logger)
+            self.execute_query(dedent(query))
             self.logger.info(
                 f"Created change history table {self.change_history_table.fully_qualified}"
             )
@@ -187,13 +176,10 @@ class BaseSession(metaclass=Singleton):
         if change_history_metadata:
             self.logger.info(
                 f"Using existing change history table {self.change_history_table.fully_qualified}",
-                last_altered=change_history_metadata["last_altered"],
+                last_altered=change_history_metadata[0]["last_altered"],
             )
             return True
         elif create_change_history_table:
-            schema_exists = self.change_history_schema_exists()
-            if not schema_exists:
-                self.create_change_history_schema(dry_run=dry_run)
             self.create_change_history_table(dry_run=dry_run)
             if dry_run:
                 return False
@@ -230,7 +216,7 @@ class BaseSession(metaclass=Singleton):
     def fetch_repeatable_scripts(self) -> dict[str, list[str]]:
         query = f"""\
         SELECT DISTINCT
-            SCRIPT AS SCRIPT_NAME,
+            SCRIPT,
             FIRST_VALUE(CHECKSUM) OVER (
                 PARTITION BY SCRIPT
                 ORDER BY INSTALLED_ON DESC
@@ -239,13 +225,15 @@ class BaseSession(metaclass=Singleton):
         WHERE SCRIPT_TYPE = 'R'
             AND STATUS = 'Success'
         """
-        results = self.execute_snowflake_query(dedent(query), logger=self.logger)
+        data = self.execute_query(query=dedent(query))
 
-        # Collect all the results into a dict
         script_checksums: dict[str, list[str]] = defaultdict(list)
-        for cursor in results:
-            for script_name, checksum in cursor:
-                script_checksums[script_name].append(checksum)
+        for item in data:
+            script = item["script"]
+            checksum = item["checksum"]
+
+            script_checksums[script].append(checksum)
+
         return script_checksums
 
     def fetch_versioned_scripts(
@@ -255,21 +243,22 @@ class BaseSession(metaclass=Singleton):
         SELECT VERSION, SCRIPT, CHECKSUM
         FROM {self.change_history_table.fully_qualified}
         WHERE SCRIPT_TYPE = 'V'
-        ORDER BY INSTALLED_ON DESC -- TODO: Why not order by version?
+        ORDER BY INSTALLED_ON DESC
         """
-        results = self.execute_snowflake_query(dedent(query), logger=self.logger)
+        data = self.execute_query(query=dedent(query))
 
-        # Collect all the results into a list
         versioned_scripts: dict[str, dict[str, str | int]] = defaultdict(dict)
         versions: list[str | int | None] = []
-        for cursor in results:
-            for version, script, checksum in cursor:
-                versions.append(version if version != "" else None)
-                versioned_scripts[script] = {
-                    "version": version,
-                    "script": script,
-                    "checksum": checksum,
-                }
+        for item in data:
+            version = item["version"]
+            script = item["script"]
+            checksum = item["checksum"]
 
-        # noinspection PyTypeChecker
+            versions.append(version if version != "" else None)
+            versioned_scripts[script] = {
+                "version": version,
+                "script": script,
+                "checksum": checksum,
+            }
+
         return versioned_scripts, versions[0] if versions else None

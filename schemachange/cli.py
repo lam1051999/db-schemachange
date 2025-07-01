@@ -15,6 +15,7 @@ from schemachange.session.session_factory import get_db_session
 module_logger = structlog.getLogger(__name__)
 SCHEMACHANGE_VERSION = "4.0.1"
 
+
 def main():
     config = get_merged_config(logger=module_logger)
     redact_config_secrets(config_secrets=config.secrets)
@@ -38,6 +39,7 @@ def main():
             session_kwargs=config.get_session_kwargs(),
         )
         deploy(config=config, session=db_session)
+
 
 if __name__ == "__main__":
     main()
