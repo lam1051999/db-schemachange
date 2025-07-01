@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 import structlog
 
-from schemachange.redact_config_secrets import (
+from schemachange.config.redact_config_secrets import (
     get_redact_config_secrets_processor,
     redact_config_secrets,
 )

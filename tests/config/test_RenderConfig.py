@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from schemachange.config.RenderConfig import RenderConfig
+from schemachange.config.render_config import RenderConfig
 
 
 @mock.patch("pathlib.Path.is_file", return_value=False)

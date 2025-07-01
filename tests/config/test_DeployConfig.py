@@ -5,8 +5,8 @@ from unittest import mock
 
 import pytest
 
-from schemachange.config.BaseConfig import BaseConfig
-from schemachange.config.DeployConfig import DeployConfig
+from schemachange.config.base import BaseConfig
+from schemachange.config.deploy_config import DeployConfig
 
 minimal_deploy_config_kwargs: dict = {
     "snowflake_account": "some_snowflake_account",

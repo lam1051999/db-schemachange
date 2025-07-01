@@ -9,7 +9,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from schemachange.config.ChangeHistoryTable import ChangeHistoryTable
+from schemachange.config.change_history_table import ChangeHistoryTable
 
 import schemachange.cli as cli
 from schemachange.config.utils import get_snowflake_identifier_string

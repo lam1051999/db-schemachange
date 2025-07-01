@@ -1,0 +1,2 @@
+class OracleSession:
+    pass

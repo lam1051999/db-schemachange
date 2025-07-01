@@ -8,7 +8,7 @@ from textwrap import dedent, indent
 import snowflake.connector
 import structlog
 
-from schemachange.config.ChangeHistoryTable import ChangeHistoryTable
+from schemachange.config.change_history_table import ChangeHistoryTable
 from schemachange.config.utils import get_snowflake_identifier_string
 from schemachange.session.Script import VersionedScript, RepeatableScript, AlwaysScript
 

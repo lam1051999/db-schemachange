@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 
 import jinja2
@@ -17,6 +17,19 @@ logger = structlog.getLogger(__name__)
 
 snowflake_identifier_pattern = re.compile(r"^[\w]+$")
 
+class BaseEnum:
+    @classmethod
+    def items(cls):
+        return [v for k, v in cls.__dict__.items() if type(v) == str and k[:2] != "__"]
+    
+    @classmethod
+    def validate_value(cls, attr, value):
+        valid_values = cls.items()
+        if value not in valid_values:
+            raise ValueError(f"Invalid value '{attr}', should be one of {valid_values}, actual '{value}'")
+
+def get_not_none_key_value(data: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: v for k, v in data.items() if v is not None}
 
 def get_snowflake_identifier_string(input_value: str, input_type: str) -> str | None:
     # Words with alphanumeric characters and underscores only.

@@ -1,4 +1,0 @@
-{% macro create_stage(stage_name, URL) -%}
-CREATE OR REPLACE STAGE {{stage_name}}
-    URL = '{{URL}}';
-{%- endmacro %}

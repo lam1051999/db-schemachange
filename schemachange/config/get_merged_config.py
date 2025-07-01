@@ -5,8 +5,8 @@ from typing import Union, Optional
 
 import structlog
 
-from schemachange.config.DeployConfig import DeployConfig
-from schemachange.config.RenderConfig import RenderConfig
+from schemachange.config.deploy_config import DeployConfig
+from schemachange.config.render_config import RenderConfig
 from schemachange.config.parse_cli_args import parse_cli_args
 from schemachange.config.utils import (
     load_yaml_config,

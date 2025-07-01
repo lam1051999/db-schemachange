@@ -5,8 +5,8 @@ from unittest import mock
 import pytest
 import structlog
 
-from schemachange.config.ChangeHistoryTable import ChangeHistoryTable
-from schemachange.session.SnowflakeSession import SnowflakeSession
+from schemachange.config.change_history_table import ChangeHistoryTable
+from schemachange.session.snowflake_session import SnowflakeSession
 
 
 @pytest.fixture

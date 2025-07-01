@@ -1,8 +1,0 @@
-config-version: 1
-
-change-history-table: "{{ env_var('SNOWFLAKE_DATABASE')}}.{{ env_var('MY_TARGET_SCHEMA')}}.CHANGE_HISTORY"
-create-change-history-table: true
-
-vars:
-  database_name: "{{env_var('SNOWFLAKE_DATABASE')}}"
-  schema_name: "{{env_var('MY_TARGET_SCHEMA')}}"

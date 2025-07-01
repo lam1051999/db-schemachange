@@ -1,8 +1,6 @@
 import dataclasses
 from typing import ClassVar
 
-from schemachange.config.utils import get_snowflake_identifier_string
-
 
 @dataclasses.dataclass(frozen=True)
 class ChangeHistoryTable:
@@ -43,13 +41,7 @@ class ChangeHistoryTable:
                 raise ValueError(f"Invalid change history table name: {table_str}")
 
         return cls(
-            table_name=get_snowflake_identifier_string(
-                input_value=table_name, input_type="table_name"
-            ),
-            schema_name=get_snowflake_identifier_string(
-                input_value=schema_name, input_type="schema_name"
-            ),
-            database_name=get_snowflake_identifier_string(
-                input_value=database_name, input_type="database_name"
-            ),
+            table_name=table_name,
+            schema_name=schema_name,
+            database_name=database_name,
         )

@@ -5,10 +5,10 @@ import re
 
 import structlog
 
-from schemachange.JinjaTemplateProcessor import JinjaTemplateProcessor
-from schemachange.config.DeployConfig import DeployConfig
-from schemachange.session.Script import get_all_scripts_recursively
-from schemachange.session.SnowflakeSession import SnowflakeSession
+from schemachange.jinja.JinjaTemplateProcessor import JinjaTemplateProcessor
+from schemachange.config.deploy_config import DeployConfig
+from schemachange.session.script import get_all_scripts_recursively
+from schemachange.session.base import BaseSession
 
 logger = structlog.getLogger(__name__)
 
@@ -34,23 +34,23 @@ def sorted_alphanumeric(data):
     return sorted(data, key=get_alphanum_key)
 
 
-def deploy(config: DeployConfig, session: SnowflakeSession):
+def deploy(config: DeployConfig, db_session: BaseSession):
     logger.info(
         "starting deploy",
         dry_run=config.dry_run,
-        snowflake_account=session.account,
-        default_role=session.role,
-        default_warehouse=session.warehouse,
-        default_database=session.database,
-        default_schema=session.schema,
-        change_history_table=session.change_history_table.fully_qualified,
+        snowflake_account=db_session.account,
+        default_role=db_session.role,
+        default_warehouse=db_session.warehouse,
+        default_database=db_session.database,
+        default_schema=db_session.schema,
+        change_history_table=db_session.change_history_table.fully_qualified,
     )
 
     (
         versioned_scripts,
         r_scripts_checksum,
         max_published_version,
-    ) = session.get_script_metadata(
+    ) = db_session.get_script_metadata(
         create_change_history_table=config.create_change_history_table,
         dry_run=config.dry_run,
     )
@@ -139,7 +139,7 @@ def deploy(config: DeployConfig, session: SnowflakeSession):
                 scripts_skipped += 1
                 continue
 
-        session.apply_change_script(
+        db_session.apply_change_script(
             script=script,
             script_content=content,
             dry_run=config.dry_run,

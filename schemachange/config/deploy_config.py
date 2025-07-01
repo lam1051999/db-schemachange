@@ -4,8 +4,8 @@ import dataclasses
 from pathlib import Path
 from typing import Literal
 
-from schemachange.config.BaseConfig import BaseConfig
-from schemachange.config.ChangeHistoryTable import ChangeHistoryTable
+from schemachange.config.base import BaseConfig
+from schemachange.config.change_history_table import ChangeHistoryTable
 from schemachange.config.utils import (
     get_snowflake_identifier_string,
     get_snowflake_password,

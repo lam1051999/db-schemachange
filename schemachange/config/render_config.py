@@ -4,7 +4,7 @@ import dataclasses
 from pathlib import Path
 from typing import Literal
 
-from schemachange.config.BaseConfig import BaseConfig
+from schemachange.config.base import BaseConfig
 from schemachange.config.utils import validate_file_path
 
 

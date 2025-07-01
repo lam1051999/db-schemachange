@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from schemachange.config.ChangeHistoryTable import ChangeHistoryTable
+from schemachange.config.change_history_table import ChangeHistoryTable
 
 
 @pytest.mark.parametrize(
